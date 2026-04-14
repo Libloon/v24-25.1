@@ -39,10 +39,12 @@ db_scalar() {
 # slutt: Renser enkelverdier fra SQLCipher-oppslag i steg 9 - oppfyller F1 (stabil autentisering) og NF1 (integritet i autentiseringsflyt) (person 4 og person 5)
 
 db_query_line() {
-    sqlcipher -line "$DB" <<EOF
+    RESULT=$(sqlcipher -line "$DB" 2>/dev/null <<EOF
 PRAGMA key = '$SQLCIPHER_KEY_SQL';
 $1
 EOF
+)
+    printf '%s\n' "$RESULT" | grep -v '^ok = ok$'
 }
 # slutt: SQLCipher-nokkel fra Kubernetes Secret i steg 9 - oppfyller F3 (persistens), NF1 (ingen hardkodede hemmeligheter) og NF7 (kryptering av data at rest og nøkkelhandtering) (person 4 og person 5)
 # slutt: Konfigurerbar databasebane og intern admin-url for herdet Kubernetes-drift - oppfyller F3 (persistens), NF1 (minste privilegium) og NF3 (stabil lokal kjøring) (person 4)
@@ -411,11 +413,11 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
 fi
 
 N_SQL=$(sql_escape "$N")
-S=$(db_query "SELECT salt FROM Bidrag WHERE pseudonym='$N_SQL';")
+S=$(db_scalar "SELECT salt FROM Bidrag WHERE pseudonym='$N_SQL';")
 if [ -z "$S" ]; then svar_mangler_bidrag_for_endre; fi
 
 H1=$(mkpasswd -m sha-256 -S "$S" "$P" | cut -f4 -d'$')
-H2=$(db_query "SELECT passordhash FROM Bidrag WHERE pseudonym='$N_SQL';")
+H2=$(db_scalar "SELECT passordhash FROM Bidrag WHERE pseudonym='$N_SQL';")
 
 if [ "$H1" != "$H2" ]; then echo "Feil passord!" >&2 ; exit; fi
 
