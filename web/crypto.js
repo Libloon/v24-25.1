@@ -298,6 +298,11 @@ if (form) {
 
     metadataField.value = "";
     showNamedResponse(action, responseText || "Ingen respons fra backend.", responseType);
+
+    if (responseType === "success") {
+      const listeText = await submitAction("Liste", "", "");
+      showNamedResponse(action + " → Liste", listeText || "Ingen bidrag å vise.", "success");
+    }
   }
 
   async function handleDelete() {
